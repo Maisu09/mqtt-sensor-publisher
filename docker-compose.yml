@@ -1,0 +1,17 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0.18
+    container_name: mosquitto-mqtt5
+    ports:
+      - "1883:1883/tcp"
+      - "9001:9001"
+    volumes:
+      - /mosquitto/config:/mosquitto/config:rw
+      - /mosquitto/data:/mosquitto/data:rw
+      - /mosquitto/log:/mosquitto/log:rw
+    restart: unless-stopped
+
+networks:
+  default:
+    name: mqtt5-network
+
