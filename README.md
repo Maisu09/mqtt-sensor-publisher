@@ -14,3 +14,7 @@ sudo systemctl disable mosquitto
 For publish:
 mosquitto_sub -h localhost -t <topic> -u <user> -P <password>
 mosquitto_pub -h localhost -t <topic> -m "messge" -u <user> -P <password>
+
+Using PubSubClient for communication on MQTT from eps32 to RPI.
+ESP publishing data to the mosquitto bronker running in a container on the RPI.
+
