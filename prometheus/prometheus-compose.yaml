@@ -1,0 +1,10 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.37.0
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9099
+    networks:
+      - monitoring
+
