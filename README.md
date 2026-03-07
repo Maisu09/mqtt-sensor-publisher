@@ -11,10 +11,19 @@ mosquitto_passwd /path/mosquitto/config/pwfile <user>
 sudo systemctl stop mosquitto
 sudo systemctl disable mosquitto
 
-For publish:
-mosquitto_sub -h localhost -t <topic> -u <user> -P <password>
+in mqtt-sensor-publiher main folder: docker compose -f docker-compose.docker.yaml up
+
+For publish
+mosquitto_sub -h 192.168.0.x:1883 -t "esp32/+/data" -u <user> -P <password>
+mosquitto_pub -h 192.168.0.x -p 1883 -u <> -P <> -t "esp32/esp32-01/data" -m '{}'
+mosquitto_pub -h 192.168.0.x -p 1883 -u <> -P <> -t "esp32/esp32-02/data" -m '{}'
+
+mosquitto_sub -h localhost:8080 -t esp -u <user> -P <password>
 mosquitto_pub -h localhost -t <topic> -m "messge" -u <user> -P <password>
 
 Using PubSubClient for communication on MQTT from eps32 to RPI.
 ESP publishing data to the mosquitto bronker running in a container on the RPI.
+
+
+For prometheus access: http://192.168.0.x:9090
 

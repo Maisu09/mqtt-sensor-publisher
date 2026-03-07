@@ -2,3 +2,4 @@ pwfile
 *.db
 *.log
 .vscode
+.venv
