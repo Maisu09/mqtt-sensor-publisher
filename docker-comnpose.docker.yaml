@@ -17,7 +17,7 @@ services:
       MQTT_HOST: mosquitto
       MQTT_PORT: "1883"
       MQTT_TOPIC: "esp32/+/data"
-      MQTT_USER: "epsuser"
+      MQTT_USER: "espuser"
       MQTT_PASS: "1234"
       MQTT_CLIENT_ID: "rpi-subscriber"
     depends_on:
