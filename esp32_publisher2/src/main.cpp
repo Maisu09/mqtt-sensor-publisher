@@ -13,8 +13,8 @@ const char* MQTT_USER = "espuser";
 const char* MQTT_PASSWORD = "1234";
 
 /* ---------- DEVICE ---------- */
-const char* DEVICE_ID = "esp32-01";
-const char* MQTT_TOPIC = "esp32/esp32-01/data";
+const char* DEVICE_ID = "esp32-02";
+const char* MQTT_TOPIC = "esp32/esp32-02/data";
 
 /* ---------- CLIENTS ---------- */
 WiFiClient wifiClient;
