@@ -15,7 +15,10 @@ pipeline{
             }
         }
         stage('Build Images') {
-            sh 'docker compose build'
+            steps{
+                sh 'docker compose build'                
+            }
+
         }
     }
 }
