@@ -9,5 +9,10 @@ pipeline{
                 checkout scm
             }
         }
+        stage('Verify Compose File') {
+            steps{
+                sh 'docker compose config'
+            }
+        }
     }
 }
