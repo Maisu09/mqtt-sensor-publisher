@@ -18,7 +18,11 @@ pipeline{
             steps{
                 sh 'docker compose build'                
             }
-
+        }
+        stage('Deploy') {
+            steps{
+                sh 'docker compose up -d --remove-orphans || true'
+            }
         }
     }
 }
