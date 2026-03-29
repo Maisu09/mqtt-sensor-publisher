@@ -25,4 +25,14 @@ pipeline{
             }
         }
     }
+
+    post{
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Pipeline failed - check logs'
+            sh 'docker compose down || true'
+        }
+    }
 }
