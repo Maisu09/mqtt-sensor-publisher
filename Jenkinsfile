@@ -1,7 +1,7 @@
 pipeline{
     agent any
     environment{
-        COMPOSE_FILE = 'docker-compose.docker.yml'
+        COMPOSE_FILE = 'docker-compose.docker.yaml'
     }
     stages{
         stage('Checkout'){
