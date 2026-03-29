@@ -14,5 +14,8 @@ pipeline{
                 sh 'docker compose config'
             }
         }
+        stage('Build Images') {
+            sh 'docker compose build'
+        }
     }
 }
