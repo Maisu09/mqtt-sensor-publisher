@@ -1,137 +1,104 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include <ESPmDNS.h>
+#include <ArduinoJson.h>
 
 /* ---------- WIFI ---------- */
-const char* WIFI_SSID = "Mișu";
+const char* WIFI_SSID     = "Mihai";
 const char* WIFI_PASSWORD = "galacticEA2002";
 
 /* ---------- MQTT ---------- */
-const char* MQTT_BROKER_HOSTNAME = "mihai-raspberry.local";
-const int MQTT_PORT = 1883;
-
-const char* MQTT_USER = "espuser";
+const char* MQTT_SERVER   = "192.168.0.244";
+const int   MQTT_PORT     = 1883;
+const char* MQTT_USER     = "espuser";
 const char* MQTT_PASSWORD = "1234";
 
 /* ---------- DEVICE ---------- */
-const char* DEVICE_ID = "esp32-01";
-const char* MQTT_TOPIC = "esp32/esp32-01/data";
+const char* DEVICE_ID   = "esp32-02";
+const char* MQTT_TOPIC  = "esp32/esp32-02/data";
 
-/* ---------- CLIENTS ---------- */
-WiFiClient wifiClient;
+/* ---------- SENSOR ---------- */
+#define PUBLISH_INTERVAL 1000
+
+WiFiClient   wifiClient;
 PubSubClient mqttClient(wifiClient);
 
-/* ---------- CONTROL ---------- */
 unsigned long lastPublish = 0;
-const long PUBLISH_INTERVAL_MS = 1000;
 
-/* ---------- RESOLVE mDNS ---------- */
-String resolveMDNS(const char* hostname) {
-  // Strip .local suffix for MDNS.queryHost()
-  String host = String(hostname);
-  host.replace(".local", "");
-
-  Serial.print("Resolving ");
-  Serial.print(hostname);
-  Serial.print("... ");
-
-  IPAddress ip = MDNS.queryHost(host, 3000); // 3 second timeout
-
-  if (ip == IPAddress(0, 0, 0, 0)) {
-    Serial.println("failed! Will retry...");
-    return "";
-  }
-
-  Serial.println(ip.toString());
-  return ip.toString();
-}
-
-/* ---------- WIFI CONNECT ---------- */
+/* -------------------------------------------------- */
 void connectWiFi() {
-  Serial.print("Connecting to WiFi");
+  Serial.printf("\nConnecting to WiFi: %s", WIFI_SSID);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-
-  Serial.println();
-  Serial.print("Connected. IP: ");
-  Serial.println(WiFi.localIP());
-
-  // Start mDNS after WiFi is connected
-  if (!MDNS.begin(DEVICE_ID)) {
-    Serial.println("mDNS init failed");
-  } else {
-    Serial.println("mDNS started");
-  }
+  Serial.printf("\nWiFi connected — IP: %s\n", WiFi.localIP().toString().c_str());
 }
 
-/* ---------- MQTT CONNECT ---------- */
+/* -------------------------------------------------- */
 void connectMQTT() {
+  mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
+
+  String clientId = String(DEVICE_ID) + "-" + String((uint32_t)ESP.getEfuseMac(), HEX);
+
   while (!mqttClient.connected()) {
-    Serial.print("Connecting to MQTT... ");
-
-    // Resolve hostname fresh each attempt in case IP changed
-    String brokerIP = resolveMDNS(MQTT_BROKER_HOSTNAME);
-    if (brokerIP == "") {
-      Serial.println("Cannot resolve broker, retrying in 3s...");
-      delay(3000);
-      continue;
-    }
-
-    mqttClient.setServer(brokerIP.c_str(), MQTT_PORT);
-
-    if (mqttClient.connect(DEVICE_ID, MQTT_USER, MQTT_PASSWORD)) {
-      Serial.println("connected");
+    Serial.printf("Connecting to MQTT broker %s:%d ...", MQTT_SERVER, MQTT_PORT);
+    if (mqttClient.connect(clientId.c_str(), MQTT_USER, MQTT_PASSWORD)) {
+      Serial.println(" connected!");
     } else {
-      Serial.print("failed rc=");
-      Serial.print(mqttClient.state());
-      Serial.println(" retrying...");
-      delay(2000);
+      Serial.printf(" failed (state=%d), retrying in 5s\n", mqttClient.state());
+      delay(5000);
     }
   }
 }
 
-/* ---------- SETUP ---------- */
+void publishTemperature() {
+  Serial.println("publishTemperature() called");
+  
+  float tempC = temperatureRead();
+  Serial.printf("Raw tempC: %.2f\n", tempC);
+  
+  // If temperatureRead() returns 0 or an implausible value, skip
+  if (tempC < 0 || tempC > 150) {
+    Serial.println("Bad temperature reading, skipping.");
+    return;
+  }
+
+  float tempF = (tempC * 9.0 / 5.0) + 32.0;
+
+  StaticJsonDocument<128> doc;
+  doc["device"] = DEVICE_ID;
+  doc["tempC"]  = serialized(String(tempC, 2));
+  doc["tempF"]  = serialized(String(tempF, 2));
+
+  char payload[128];
+  serializeJson(doc, payload);
+
+  if (mqttClient.publish(MQTT_TOPIC, payload, false)) {
+    Serial.printf("Published → %s : %s\n", MQTT_TOPIC, payload);
+  } else {
+    Serial.println("Publish FAILED.");
+  }
+}
+
+/* -------------------------------------------------- */
 void setup() {
   Serial.begin(115200);
-  delay(1000);
-
   connectWiFi();
   connectMQTT();
 }
 
-/* ---------- LOOP ---------- */
+/* -------------------------------------------------- */
 void loop() {
-  if (WiFi.status() != WL_CONNECTED) {
-    connectWiFi();
-  }
-
   if (!mqttClient.connected()) {
     connectMQTT();
   }
-
   mqttClient.loop();
 
   unsigned long now = millis();
-
-  if (now - lastPublish >= PUBLISH_INTERVAL_MS) {
+  if (now - lastPublish >= PUBLISH_INTERVAL) {
     lastPublish = now;
-
-    float temp = temperatureRead();
-
-    char payload[128];
-    snprintf(payload, sizeof(payload),
-             "{\"device\":\"%s\",\"temperature\":%.2f,\"ts_ms\":%lu}",
-             DEVICE_ID, temp, now);
-
-    bool ok = mqttClient.publish(MQTT_TOPIC, payload);
-
-    Serial.print("Publish: ");
-    Serial.print(payload);
-    Serial.print(" -> ");
-    Serial.println(ok ? "OK" : "FAIL");
+    publishTemperature();
   }
 }
